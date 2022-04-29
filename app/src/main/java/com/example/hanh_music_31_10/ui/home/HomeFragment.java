@@ -6,22 +6,17 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.hanh_music_31_10.R;
+import com.example.hanh_music_31_10.model.Album;
 import com.example.hanh_music_31_10.model.Constants;
 import com.example.hanh_music_31_10.model.Playlist;
 import com.example.hanh_music_31_10.model.Song;
-import com.example.hanh_music_31_10.ui.recycler.BaseRecyclerAdapter;
 import com.example.hanh_music_31_10.ui.recycler.BaseRecyclerViewHolder;
 import com.example.hanh_music_31_10.ui.recycler.RecyclerActionListener;
-import com.example.hanh_music_31_10.ui.recycler.RecyclerViewType;
-import com.example.hanh_music_31_10.ui.search.SearchViewModel;
 import com.firebase.client.DataSnapshot;
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
@@ -31,13 +26,13 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 
 public class HomeFragment extends Fragment {
 
     private HomeViewModel homeViewModel;
+    private ValueEventListener mConnectedListener;
 
     RecyclerActionListener mRecyclerActionListener = new RecyclerActionListener() {
         @Override
@@ -63,8 +58,8 @@ public class HomeFragment extends Fragment {
         homeViewModel.openDetailSong().observe(getViewLifecycleOwner(), new Observer<Song>() {
             @Override
             public void onChanged(Song song) {
-                System.out.println("Hanh NTHe song "+song);
-                if(song != null) {
+                System.out.println("Hanh NTHe song " + song);
+                if (song != null) {
                     openDetailFragment();
                     homeViewModel.setDetailSong(song);
                     homeViewModel.setSongFirstClick(null);
@@ -112,7 +107,7 @@ public class HomeFragment extends Fragment {
                     }.getType();
                     HashMap<String, Song> data = gson.fromJson(json, listType);
                     if (data != null) {
-                        Playlist playlist = new Playlist(1,"Mới phát hành", new ArrayList<>(data.values()));
+                        Playlist playlist = new Playlist(1, "Mới phát hành", new ArrayList<>(data.values()));
                         mData.add(playlist);
                         return;
                     }
@@ -129,16 +124,18 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        new Firebase(Constants.FIREBASE_REALTIME_DATABASE_URL).child(Constants.FIREBASE_REALTIME_HOME_PATH).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Gson gson = new Gson();
+        mConnectedListener = new Firebase(Constants.FIREBASE_REALTIME_DATABASE_URL).child(Constants.FIREBASE_REALTIME_ALBUM_PATH)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        Gson gson = new Gson();
 
-                Object object = dataSnapshot.getValue(Object.class);
-                String json = gson.toJson(object);
+                        Object object = dataSnapshot.getValue(Object.class);
+                        String json = gson.toJson(object);
 
-                Type listType = new TypeToken<ArrayList<Playlist>>() {}.getType();
-                ArrayList<Playlist> data = gson.fromJson(json, listType);
+                        Type listType = new TypeToken<ArrayList<Album>>() {
+                        }.getType();
+                        ArrayList<Album> data = gson.fromJson(json, listType);
 
 //                for (String key : map.keySet()) {
 //                    data.add(map.get(key));
@@ -146,19 +143,21 @@ public class HomeFragment extends Fragment {
 
 //                if (homeViewModel.getPlaylist().getValue().size() == 0)
 //                homeViewModel.setPlaylist(data);
-                for (int i =0; i < data.size() ; i++)
-                    mData.add(data.get(i));
-                homeViewModel.setPlaylist(mData);
+                        if (data == null) return;
+                        data.removeAll(Collections.singletonList(null));
+                        for (Album a : data) {
+                            mData.add(new Playlist(a));
+                        }
+                        homeViewModel.setPlaylist(mData);
 
 //                Playlist playlist = map.get(map.keySet().toArray()[0]);
-            }
+                    }
 
-            @Override
-            public void onCancelled(FirebaseError firebaseError) {
+                    @Override
+                    public void onCancelled(FirebaseError firebaseError) {
 
-            }
-        });
-
+                    }
+                });
 
 
 //        List<Song> dataSong = new ArrayList<Song>();
@@ -202,5 +201,12 @@ public class HomeFragment extends Fragment {
 //        dataSong3.add(new Song(2, "Tung yeu", "", "Phan Duy Anh", "", "5:13", 0, ""));
 //        data.add(new Playlist(1, "Anh yeu nguoi khac roi", dataSong3));
 //        return data;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        new Firebase(Constants.FIREBASE_REALTIME_DATABASE_URL).child(Constants.FIREBASE_REALTIME_ALBUM_PATH)
+                .removeEventListener(mConnectedListener);
     }
 }

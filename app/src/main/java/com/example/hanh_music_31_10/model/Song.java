@@ -35,6 +35,9 @@ public class Song implements RecyclerData, Serializable {
         this(0, "", "", "", "", "", 0, "", "");
     }
 
+    public Song(int id) {
+        this(id, "", "", "", "", "", 0, "", "");    }
+
     public Song(int id, String nameSong, String pathSong, String singer, String albumID, String duration, int idCategory, String mImageUrl) {
         this(id, nameSong, pathSong, singer, albumID, duration, idCategory, mImageUrl, "");
     }

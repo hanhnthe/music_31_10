@@ -1,5 +1,9 @@
 package com.example.hanh_music_31_10.ui.holder;
 
+import static com.example.hanh_music_31_10.model.Constants.FIREBASE_REALTIME_SONG_PATH;
+
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -15,11 +19,14 @@ import com.example.hanh_music_31_10.service.MediaPlaybackService;
 import com.example.hanh_music_31_10.ui.recycler.BaseRecyclerViewHolder;
 import com.example.hanh_music_31_10.ui.recycler.RecyclerActionListener;
 import com.example.hanh_music_31_10.ui.recycler.RecyclerData;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class HomeSongItemHolder extends BaseRecyclerViewHolder {
     private ImageView mImageView;
     private TextView mTextSongName;
     private TextView mTextArtistsName;
+    private DatabaseReference mDatabaseReference;
 
     public HomeSongItemHolder(@NonNull View itemView) {
         super(itemView);
@@ -32,18 +39,37 @@ public class HomeSongItemHolder extends BaseRecyclerViewHolder {
     public void bindViewHolder(RecyclerData data) {
         if (data instanceof Song) {
             Song song = (Song) data;
-            //Glide.... de load anh :|
-            Glide.with(mImageView)
-                    .load(song.getImageUrl())
-                    .transition(GenericTransitionOptions.with(android.R.anim.fade_in))
-                    .apply(RequestOptions.
-                            placeholderOf(R.drawable.placeholder_music))
-                    .into(mImageView);
+            if (TextUtils.isEmpty(song.getNameSong())) {
+                if (mDatabaseReference == null)
+                    mDatabaseReference = FirebaseDatabase.getInstance().getReference();
+                mDatabaseReference.child(FIREBASE_REALTIME_SONG_PATH).child(String.valueOf(((Song) data).getId())).get()
+                        .addOnCompleteListener(task -> {
+                            if (!task.isSuccessful()) {
+                                Log.e("firebase", "Error getting data", task.getException());
+                            } else {
+                                Song value = task.getResult().getValue(Song.class);
+                                if (value == null) return;
+                                updateData(value);
+                            }
+                        });
+            } else {
+                updateData(song);
+            }
+        }
+    }
+
+    private void updateData(Song song) {
+        //Glide.... de load anh :|
+        Glide.with(mImageView)
+                .load(song.getImageUrl())
+                .transition(GenericTransitionOptions.with(android.R.anim.fade_in))
+                .apply(RequestOptions.
+                        placeholderOf(R.drawable.placeholder_music))
+                .into(mImageView);
 
 //            mImageView.setImageResource(R.drawable.home_test);
-            mTextSongName.setText(song.getNameSong());
-            mTextArtistsName.setText(song.getSinger());
-        }
+        mTextSongName.setText(song.getNameSong());
+        mTextArtistsName.setText(song.getSinger());
     }
 
     @Override
