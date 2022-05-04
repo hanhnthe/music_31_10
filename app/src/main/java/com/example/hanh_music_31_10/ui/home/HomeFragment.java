@@ -89,7 +89,8 @@ public class HomeFragment extends Fragment {
 
     //Create data
     private void getData() {
-        ArrayList<Playlist> mData = new ArrayList<>();
+        final ArrayList<Playlist>[] mData = new ArrayList[]{new ArrayList<Playlist>()};
+        final Playlist[] latestRelease = {null};
 
         new Firebase(Constants.FIREBASE_REALTIME_DATABASE_URL).child(Constants.FIREBASE_REALTIME_SONG_PATH)
                 .limitToLast(5).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -107,9 +108,8 @@ public class HomeFragment extends Fragment {
                     }.getType();
                     HashMap<String, Song> data = gson.fromJson(json, listType);
                     if (data != null) {
-                        Playlist playlist = new Playlist(1, "Mới phát hành", new ArrayList<>(data.values()));
-                        mData.add(playlist);
-                        return;
+                        latestRelease[0] = new Playlist(-1, "Mới phát hành", new ArrayList<>(data.values()));
+                        updatePlaylist(latestRelease[0], mData[0]);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -145,10 +145,12 @@ public class HomeFragment extends Fragment {
 //                homeViewModel.setPlaylist(data);
                         if (data == null) return;
                         data.removeAll(Collections.singletonList(null));
-                        for (Album a : data) {
-                            mData.add(new Playlist(a));
-                        }
-                        homeViewModel.setPlaylist(mData);
+                        mData[0] = new ArrayList<>();
+                        for (Album a : data)
+                            if (a.getSongList().size() > 0) {
+                                mData[0].add(new Playlist(a));
+                            }
+                        updatePlaylist(latestRelease[0], mData[0]);
 
 //                Playlist playlist = map.get(map.keySet().toArray()[0]);
                     }
@@ -201,6 +203,12 @@ public class HomeFragment extends Fragment {
 //        dataSong3.add(new Song(2, "Tung yeu", "", "Phan Duy Anh", "", "5:13", 0, ""));
 //        data.add(new Playlist(1, "Anh yeu nguoi khac roi", dataSong3));
 //        return data;
+    }
+
+    private void updatePlaylist(Playlist latest, ArrayList<Playlist> data) {
+        if (latest != null)
+            data.add(0, latest);
+        homeViewModel.setPlaylist(data);
     }
 
     @Override

@@ -3,7 +3,6 @@ package com.example.hanh_music_31_10.ui.holder;
 import static com.example.hanh_music_31_10.model.Constants.FIREBASE_REALTIME_SONG_PATH;
 
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -19,13 +18,20 @@ import com.example.hanh_music_31_10.service.MediaPlaybackService;
 import com.example.hanh_music_31_10.ui.recycler.BaseRecyclerViewHolder;
 import com.example.hanh_music_31_10.ui.recycler.RecyclerActionListener;
 import com.example.hanh_music_31_10.ui.recycler.RecyclerData;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
 
 public class HomeSongItemHolder extends BaseRecyclerViewHolder {
-    private ImageView mImageView;
-    private TextView mTextSongName;
-    private TextView mTextArtistsName;
+    private final ImageView mImageView;
+    private final TextView mTextSongName;
+    private final TextView mTextArtistsName;
     private DatabaseReference mDatabaseReference;
 
     public HomeSongItemHolder(@NonNull View itemView) {
@@ -42,14 +48,31 @@ public class HomeSongItemHolder extends BaseRecyclerViewHolder {
             if (TextUtils.isEmpty(song.getNameSong())) {
                 if (mDatabaseReference == null)
                     mDatabaseReference = FirebaseDatabase.getInstance().getReference();
-                mDatabaseReference.child(FIREBASE_REALTIME_SONG_PATH).child(String.valueOf(((Song) data).getId())).get()
-                        .addOnCompleteListener(task -> {
-                            if (!task.isSuccessful()) {
-                                Log.e("firebase", "Error getting data", task.getException());
-                            } else {
-                                Song value = task.getResult().getValue(Song.class);
-                                if (value == null) return;
-                                updateData(value);
+                mDatabaseReference.child(FIREBASE_REALTIME_SONG_PATH).child(String.valueOf(song.getId()))
+                        .addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                Gson gson = new Gson();
+
+                                Object object = dataSnapshot.getValue(Object.class);
+                                String json = gson.toJson(object);
+
+//                Type listType = new TypeToken<ArrayList<Song>>() {}.getType();
+//                ArrayList<Song> data = gson.fromJson(json, listType);
+                                try {
+                                    Type listType = new TypeToken<Song>() {
+                                    }.getType();
+                                    Song value = gson.fromJson(json, listType);
+                                    if (value == null) return;
+                                    song.updateData(value);
+                                    updateData(value);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError error) {
                             }
                         });
             } else {

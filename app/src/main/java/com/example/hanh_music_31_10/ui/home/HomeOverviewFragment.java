@@ -1,12 +1,13 @@
 package com.example.hanh_music_31_10.ui.home;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
@@ -22,7 +23,6 @@ import com.example.hanh_music_31_10.ui.recycler.BaseRecyclerViewHolder;
 import com.example.hanh_music_31_10.ui.recycler.RecyclerActionListener;
 import com.example.hanh_music_31_10.ui.recycler.RecyclerViewType;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class HomeOverviewFragment extends Fragment {
@@ -43,6 +43,14 @@ public class HomeOverviewFragment extends Fragment {
 
         @Override
         public void clickSong(Song song) {
+            if (TextUtils.isEmpty(song.getNameSong())
+                    && TextUtils.isEmpty(song.getSinger())
+                    && TextUtils.isEmpty(song.getDuration())
+                    && TextUtils.isEmpty(song.getLinkUrl())
+                    && TextUtils.isEmpty(song.getImageUrl())) {
+                Toast.makeText(getContext(), "Không thể mở bài hát do lỗi dữ liệu!!!", Toast.LENGTH_SHORT).show();
+                return;
+            }
             homeViewModel.setSongFirstClick(song);
         }
     };
@@ -52,7 +60,7 @@ public class HomeOverviewFragment extends Fragment {
                              ViewGroup container, Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_home_overview, container, false);
         mRecyclerView = root.findViewById(R.id.list_block_playlist_home);
-        mRecyclerView.setHasFixedSize(true);
+//        mRecyclerView.setHasFixedSize(true);
 
         mLinearLayout = new LinearLayoutManager(getContext());
         mRecyclerView.setLayoutManager(mLinearLayout);
@@ -64,7 +72,6 @@ public class HomeOverviewFragment extends Fragment {
             }
         };
         mRecyclerView.setAdapter(adapter);
-        System.out.println("QuangNHe onCreateView " +mRecyclerView);
 
         homeViewModel =
                 new ViewModelProvider(requireActivity()).get(HomeViewModel.class);
